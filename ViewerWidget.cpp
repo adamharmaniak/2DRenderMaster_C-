@@ -326,13 +326,11 @@ void ViewerWidget::drawLine(Line& line)
 
 	clipLineWithPolygon(lineToClip);
 
-	// Overenie, ci bola usecka orezana a aktualizacia linePoints podla potreby
-	if (lineToClip.size() == 2) { // Kontrola, ci orezanie zmenilo body
+	if (lineToClip.size() == 2) {
 		linePoints.append(lineToClip[0]);
 		linePoints.append(lineToClip[1]);
 	}
 	else {
-		// Ak orezanie uplne odstranilo usecku alebo nezmenilo body, vykreslenie povodnej usecky
 		linePoints.append(line.getPoints()[0]);
 		linePoints.append(line.getPoints()[1]);
 	}
@@ -348,46 +346,41 @@ void ViewerWidget::drawLine(Line& line)
 
 void ViewerWidget::clipLineWithPolygon(QVector<QPoint> linePoints) {
 	if (linePoints.size() < 2) {
-		return; // Nedostatok bodov na vytvorenie ciary
+		return;
 	}
 
 	QVector<QPoint> clippedPoints;
 	QPoint P1 = linePoints[0], P2 = linePoints[1];
-	double t_min = 0, t_max = 1; // Inicializacia t-hodnot
-	QPoint d = P2 - P1; // Smerovy vektor usecky
-	//qDebug() << "Povodny useckovy segment od" << P1 << "do" << P2;
+	double t_min = 0, t_max = 1;
+	QPoint d = P2 - P1;
 
-	// Definicia hran orezavacieho obdlznika
 	QVector<QPoint> E = { QPoint(0,0), QPoint(500,0), QPoint(500,500), QPoint(0,500) };
 
 	for (int i = 0; i < E.size(); i++) {
 		QPoint E1 = E[i];
-		QPoint E2 = E[(i + 1) % E.size()]; // Zopnutie pre poslednu hranu
+		QPoint E2 = E[(i + 1) % E.size()];
 
-		QPoint normal = QPoint(E2.y() - E1.y(), E1.x() - E2.x()); // Opravene znamienko
+		QPoint normal = QPoint(E2.y() - E1.y(), E1.x() - E2.x());
 
-		QPoint w = P1 - E1; // Vektor z koncoveho bodu hrany k P1
+		QPoint w = P1 - E1;
 
 		double dn = d.x() * normal.x() + d.y() * normal.y();
 		double wn = w.x() * normal.x() + w.y() * normal.y();
 		if (dn != 0) {
 			double t = -wn / dn;
-			//qDebug() << "Hodnota t priesecnika s hranou" << i << ":" << t;
 			if (dn > 0 && t <= 1) {
-				t_min = std::max(t, t_min); // Aktualizácia t_min, ak dn > 0 a t <= 1
+				t_min = std::max(t, t_min);
 			}
 			else if (dn < 0 && t >= 0) {
-				t_max = std::min(t, t_max); // Aktualizácia t_max, ak dn < 0 a t >= 0
+				t_max = std::min(t, t_max);
 			}
 		}
 	}
 
-	//qDebug() << "t_min:" << t_min << "t_max:" << t_max;
 
 	if (t_min < t_max) {
-		QPoint clippedP1 = P1 + (P2 - P1) * t_min; // Vypocet orezaneho zaciatocneho bodu
-		QPoint clippedP2 = P1 + (P2 - P1) * t_max; // Vypocet orezaneho koncoveho bodu
-		//qDebug() << "Orezany useckovy segment od" << clippedP1 << "do" << clippedP2;
+		QPoint clippedP1 = P1 + (P2 - P1) * t_min;
+		QPoint clippedP2 = P1 + (P2 - P1) * t_max;
 
 		clippedPoints.push_back(clippedP1);
 		clippedPoints.push_back(clippedP2);
@@ -396,7 +389,6 @@ void ViewerWidget::clipLineWithPolygon(QVector<QPoint> linePoints) {
 		//qDebug() << "Useckovy segment je uplne mimo orezovacej oblasti alebo je neplatny.";
 	}
 
-	// Aktualizacia povodnych linePoints s orezanymi bodmi
 	if (!clippedPoints.isEmpty()) {
 		linePoints = clippedPoints;
 	}
@@ -404,56 +396,54 @@ void ViewerWidget::clipLineWithPolygon(QVector<QPoint> linePoints) {
 
 void ViewerWidget::drawLineBresenham(QVector<QPoint>& linePoints) {
 	int p, k1, k2;
-	int dx = linePoints.last().x() - linePoints.first().x();  // Rozdiel x suradnic
-	int dy = linePoints.last().y() - linePoints.first().y();  // Rozdiel y suradnic
+	int dx = linePoints.last().x() - linePoints.first().x();
+	int dy = linePoints.last().y() - linePoints.first().y();
 
-	int adx = abs(dx); // Absolutna hodnota dx
-	int ady = abs(dy); // Absolutna hodnota dy
+	int adx = abs(dx);
+	int ady = abs(dy);
 
-	int x = linePoints.first().x(); // Zaciatocna x pozicia
-	int y = linePoints.first().y(); // Zaciatocna y pozicia
+	int x = linePoints.first().x();
+	int y = linePoints.first().y();
 
-	int incrementX = (dx > 0) ? 1 : -1; // Urcenie smeru posunu po x-ovej osi
-	int incrementY = (dy > 0) ? 1 : -1; // Urcenie smeru posunu po y-ovej osi
+	int incrementX = (dx > 0) ? 1 : -1;
+	int incrementY = (dy > 0) ? 1 : -1;
 
 	if (adx > ady) {
-		// Ciara je strmsia v x-ovej osi
-		p = 2 * ady - adx;  // Inicializacia rozhodovacieho parametra
-		k1 = 2 * ady;       // Konstanta pre horizontalny krok
-		k2 = 2 * (ady - adx);  // Konstanta pre diagonalny krok
+		p = 2 * ady - adx;
+		k1 = 2 * ady;
+		k2 = 2 * (ady - adx);
 
 		while (x != linePoints.last().x()) {
-			setPixel(x, y, borderColor); // Kreslenie bodu na aktualnych suradniciach
-			x += incrementX; // Posun v x-ovej osi
+			setPixel(x, y, borderColor);
+			x += incrementX;
 			if (p >= 0) {
-				y += incrementY; // Posun v y-ovej osi, ak je to potrebne
-				p += k2; // Aktualizacia rozhodovacieho parametra
+				y += incrementY;
+				p += k2;
 			}
 			else {
-				p += k1; // Aktualizacia rozhodovacieho parametra
+				p += k1;
 			}
 		}
 	}
 	else {
-		// Ciara je strmsia v y-ovej osi
-		p = 2 * adx - ady;  // Inicializacia rozhodovacieho parametra
-		k1 = 2 * adx;       // Konstanta pre vertikalny krok
-		k2 = 2 * (adx - ady);  // Konstanta pre diagonalny krok
+		p = 2 * adx - ady;
+		k1 = 2 * adx;
+		k2 = 2 * (adx - ady);
 
 		while (y != linePoints.last().y()) {
-			setPixel(x, y, borderColor); // Kreslenie bodu na aktualnych suradniciach
-			y += incrementY; // Posun v y-ovej osi
+			setPixel(x, y, borderColor);
+			y += incrementY;
 			if (p >= 0) {
-				x += incrementX; // Posun v x-ovej osi, ak je to potrebne
-				p += k2; // Aktualizacia rozhodovacieho parametra
+				x += incrementX;
+				p += k2;
 			}
 			else {
-				p += k1; // Aktualizacia rozhodovacieho parametra
+				p += k1;
 			}
 		}
 	}
 
-	setPixel(linePoints.last().x(), linePoints.last().y(), borderColor); // Vykreslenie posledneho bodu
+	setPixel(linePoints.last().x(), linePoints.last().y(), borderColor);
 }
 
 void ViewerWidget::moveLine(const QPoint& offset) {
@@ -553,26 +543,24 @@ void ViewerWidget::drawCircle(Circle& circle) {
 	int r = std::sqrt(std::pow(radiusPoint.x() - center.x(), 2) + std::pow(radiusPoint.y() - center.y(), 2));
 	int x = 0;
 	int y = r;
-	int p = 1 - r;	// Inicializacia rozhodovacieho parametra
+	int p = 1 - r;
 
-	// Kreslenie symetrickych bodov a vyplnenie, ak ma byt kruh vyplneny
 	if (circle.getIsFilled()) {
 		drawSymmetricPoints(center, x, y);
 		drawSymmetricPointsFilled(center, x, y);
 	}
 	else {
-		drawSymmetricPoints(center, x, y);	// Kreslenie symetrickych bodov na obvode
+		drawSymmetricPoints(center, x, y);
 	}
 
-	// Pouzitie Midpoint kruhoveho algoritmu
 	while (x < y) {
-		x++;	// Inkrementacia x-ovej suradnice
+		x++;
 		if (p < 0) {
-			p += 2 * x + 1;	// Aktualizacia rozhodovacieho parametra, ak je p menej ako 0
+			p += 2 * x + 1;
 		}
 		else {
-			y--;	// Dekrementacia y-ovej suradnice
-			p += 2 * (x - y) + 1;	// Aktualizacia rozhodovacieho parametra, ak je p vacsie alebo rovne 0
+			y--;
+			p += 2 * (x - y) + 1;
 		}
 
 		if (circle.getIsFilled()) {
@@ -668,7 +656,6 @@ void ViewerWidget::drawPolygon(MyPolygon& polygon) {
 	painter->setPen(QPen(borderColor));
 	QVector<QPoint> polygonPoints = pointsVector;
 
-	// Kontrola, ci su vsetky body mimo definovaneho platna/kresliacej oblasti
 	bool allPointsOutside = std::all_of(pointsVector.begin(), pointsVector.end(), [this](const QPoint& point) {
 		return !isInside(point);
 		});
@@ -678,10 +665,9 @@ void ViewerWidget::drawPolygon(MyPolygon& polygon) {
 		return;
 	}
 
-	// Kontrola kazdeho bodu, ci sa nachadza v kresliacej oblasti, a pripadne orezanie polygonu
 	for (QPoint point : pointsVector) {
 		if (!isInside(point)) {
-			polygonPoints = trimPolygon(polygon); // Orezanie polygónu, ak nejaké body prekračujú hranice
+			polygonPoints = trimPolygon(polygon);
 			break;
 		}
 	}
@@ -781,15 +767,12 @@ void ViewerWidget::turnPolygon(int angle) {
 			QVector<QPoint> rotatedPoints;
 
 			for (const QPoint& point : points) {
-				// Translate the point to the origin
 				int translatedX = point.x() - center.x();
 				int translatedY = point.y() - center.y();
 
-				// Rotate the point
 				int rotatedX = static_cast<int>(translatedX * cosAngle - translatedY * sinAngle);
 				int rotatedY = static_cast<int>(translatedX * sinAngle + translatedY * cosAngle);
 
-				// Translate the point back
 				rotatedX += center.x();
 				rotatedY += center.y();
 
@@ -810,31 +793,24 @@ QVector<QPoint> ViewerWidget::trimPolygon(Shape& polygon) {
 		return QVector<QPoint>();
 	}
 
-	QVector<QPoint> W, polygonPoints = pointsVector; // Inicializacia pomocneho vektora a kopie povodneho vektora bodov
-	QPoint S; // Pomocny bod pre pracu s bodmi polygonu
+	QVector<QPoint> W, polygonPoints = pointsVector;
+	QPoint S;
 
-	//qDebug() << "Pociatocny pointsVector:" << pointsVector;
+	int xMin[] = { 0,0,-499,-499 };
 
-	int xMin[] = { 0,0,-499,-499 }; // Hranice orezania
-
-	// Prechadzame styri hranice orezania
 	for (int i = 0; i < 4; i++) {
 		if (pointsVector.size() == 0) {
-			//qDebug() << "pointsVector ostal prazdny, vraciam polygon:" << polygon;
 			return polygonPoints;
 		}
 
-		S = polygonPoints[polygonPoints.size() - 1]; // Nastavenie S na posledny bod v polygone
+		S = polygonPoints[polygonPoints.size() - 1];
 
-		// Iteracia cez vsetky body polygonu
 		for (int j = 0; j < polygonPoints.size(); j++) {
-			// Logika orezania zalozena na pozicii bodu vzhladom na orezavaciu hranicu
 			if (polygonPoints[j].x() >= xMin[i]) {
 				if (S.x() >= xMin[i]) {
 					W.push_back(polygonPoints[j]);
 				}
 				else {
-					// Vytvorenie noveho bodu na hranici orezania a jeho pridanie do vystupneho vektora
 					QPoint P(xMin[i], S.y() + (xMin[i] - S.x()) * ((polygonPoints[j].y() - S.y()) / static_cast<double>((polygonPoints[j].x() - S.x()))));
 					W.push_back(P);
 					W.push_back(polygonPoints[j]);
@@ -842,27 +818,22 @@ QVector<QPoint> ViewerWidget::trimPolygon(Shape& polygon) {
 			}
 			else {
 				if (S.x() >= xMin[i]) {
-					// Vytvorenie bodu na hranici a pridanie do W, ak predchadzajuci bod bol vnutri orezanej oblasti
 					QPoint P(xMin[i], S.y() + (xMin[i] - S.x()) * ((polygonPoints[j].y() - S.y()) / static_cast<double>((polygonPoints[j].x() - S.x()))));
 					W.push_back(P);
 				}
 			}
-			S = polygonPoints[j]; // Aktualizacia S na aktualny bod pre dalsiu iteraciu
+			S = polygonPoints[j];
 		}
-		//qDebug() << "Po orezavani s xMin[" << i << "] =" << xMin[i] << "W:" << W;
-		polygonPoints = W; // Nastavenie orezaneho polygonu ako aktualneho polygonu pre dalsiu iteraciu
-		W.clear(); // Vymazanie pomocneho vektora pre dalsie pouzitie
+		polygonPoints = W;
+		W.clear();
 
-		// Rotacia bodov polygonu pre dalsiu hranicu orezania
 		for (int j = 0; j < polygonPoints.size(); j++) {
 			QPoint swappingPoint = polygonPoints[j];
 			polygonPoints[j].setX(swappingPoint.y());
 			polygonPoints[j].setY(-swappingPoint.x());
 		}
-		//qDebug() << "Po vymene, polygon:" << polygon;
 	}
 
-	//qDebug() << "Vysledny orezany polygon:" << polygon;
 	return polygonPoints;
 }
 
@@ -870,22 +841,16 @@ QVector<ViewerWidget::Edge> ViewerWidget::loadEdges(const QVector<QPoint>& point
 	QVector<Edge> edges;
 
 	for (int i = 0; i < points.size(); i++) {
-		// Urcenie zaciatocneho a koncoveho bodu hrany
 		QPoint startPoint = points[i];
-		QPoint endPoint = points[(i + 1) % points.size()]; // Po poslednom bode, vratenie sa na prvy
+		QPoint endPoint = points[(i + 1) % points.size()];
 
-		// Priame vytvorenie hrany bez manualneho vypoctu sklonu
 		Edge edge(startPoint, endPoint);
-
-		// Upravenie koncoveho bodu hrany podla povodnej logiky, ak je to potrebne
 		edge.adjustEndPoint();
 
 		edges.push_back(edge);
 	}
 
-	// Prepocet sklonu a zmena bodov prebieha v konstruktore triedy
-
-	std::sort(edges.begin(), edges.end(), compareByY); // Usporiadanie hran podla ich y-ovej suradnice
+	std::sort(edges.begin(), edges.end(), compareByY);
 	return edges;
 }
 
@@ -896,18 +861,15 @@ void ViewerWidget::fillPolygon(Shape& polygon) {
 		//qDebug() << "Neobsahuje body pre vyplnanie.";
 		return;
 	}
-	// Nacitanie hran z bodov
 	QVector<Edge> edges = loadEdges(points);
 	if (edges.isEmpty()) {
 		//qDebug() << "Vektor hran je prazdny.";
 		return;
 	}
 
-	// Inicializacia yMin a yMax na zaklade prvej hrany
 	int yMin = edges.front().startPoint().y();
 	int yMax = edges.front().endPoint().y();
 
-	// Najdenie celkovych yMin a yMax hodnot
 	for (const Edge& edge : edges) {
 		int y1 = edge.startPoint().y();
 		int y2 = edge.endPoint().y();
@@ -915,22 +877,14 @@ void ViewerWidget::fillPolygon(Shape& polygon) {
 		yMax = qMax(yMax, qMax(y1, y2));
 	}
 
-	//qDebug() << "Prepocitane yMin:" << yMin << "yMax:" << yMax;
-
-	// Kontrola platnosti hodnot yMin a yMax
 	if (yMin >= yMax) {
 		//qDebug() << "Neplatne yMin a yMax hodnoty. Mozne nespravne nastavenie hrany.";
 		return;
 	}
-
-	// Tabulka hran, inicializovana tak, aby pokryvala od yMin po yMax
 	QVector<QVector<Edge>> TH(yMax - yMin + 1);
 
-	//qDebug() << "yMin:" << yMin << "yMax:" << yMax;
-
-	// Naplnanie tabulky hran
 	for (const auto& edge : edges) {
-		int index = edge.startPoint().y() - yMin; // Index zalozeny na offsete yMin
+		int index = edge.startPoint().y() - yMin;
 		if (index < 0 || index >= TH.size()) {
 			//qDebug() << "Invalid index:" << index << "for edge start point y:" << edge.startPoint().y();
 			continue;
@@ -938,40 +892,35 @@ void ViewerWidget::fillPolygon(Shape& polygon) {
 		TH[index].append(edge);
 	}
 
-	QVector<Edge> activeEdgeList; // Zoznam aktivnych hran (AEL)
+	QVector<Edge> activeEdgeList;
 
-	// Zaciatok prechodu scan line od yMin po yMax
 	for (int y = yMin; y <= yMax; y++) {
-		// Pridanie hran do AEL
 		for (const auto& edge : TH[y - yMin]) {
 			activeEdgeList.append(edge);
 		}
 
-		// Zoradenie AEL podla aktualnej hodnoty X
 		std::sort(activeEdgeList.begin(), activeEdgeList.end(), [](const Edge& a, const Edge& b) {
 			return a.x() < b.x();
 			});
 
-		// Kreslenie ciar medzi parmi hodnot X
 		for (int i = 0; i < activeEdgeList.size(); i += 2) {
 			if (i + 1 < activeEdgeList.size()) {
 				int startX = qRound(activeEdgeList[i].x());
 				int endX = qRound(activeEdgeList[i + 1].x());
 				for (int x = startX; x <= endX; x++) {
-					setPixel(x, y, fillingColor); // Vyplnenie medzi hranami
+					setPixel(x, y, fillingColor);
 				}
 			}
 		}
-
-		// Aktualizacia a odstranenie hran z AEL
+		
 		QMutableVectorIterator<Edge> it(activeEdgeList);
 		while (it.hasNext()) {
 			Edge& edge = it.next();
 			if (edge.endPoint().y() == y) {
-				it.remove(); // Odstranenie hrany, ak konci na aktualnej scan line
+				it.remove();
 			}
 			else {
-				edge.setX(edge.x() + edge.w()); // Aktualizacia X pre dalsiu scan line
+				edge.setX(edge.x() + edge.w());
 			}
 		}
 	}
@@ -992,28 +941,24 @@ void ViewerWidget::drawCurve(BezierCurve& curve) {
 	}
 
 	painter->setPen(QPen(borderColor));
-	float deltaT = 0.01f;	// Krok pre parameter t
-	QPoint Q0 = curvePoints[0];	// Inicializacia prveho bodu
+	float deltaT = 0.01f;
+	QPoint Q0 = curvePoints[0];
 
-	std::vector<Line> lines;	// Vektor pre ukladanie useciek
+	std::vector<Line> lines;
 
-	// Vypocet bodov krivky pomocou de Casteljau algoritmu
 	for (float t = deltaT; t <= 1; t += deltaT) {
-		QVector<QPoint> tempPoints = curvePoints;	// Kopirovanie riadiacich bodov
+		QVector<QPoint> tempPoints = curvePoints;
 
-		// Iterativny vypocet bodov krivky
 		for (int i = 1; i < tempPoints.size(); i++) {
 			for (int j = 0; j < tempPoints.size() - i; j++) {
 				tempPoints[j] = tempPoints[j] * (1 - t) + tempPoints[j + 1] * t;
 			}
 		}
 
-		// Pridanie usecky do vektora
 		lines.emplace_back(Q0, tempPoints[0], curve.getZBufferPosition(), curve.getIsFilled(), borderColor, fillingColor);
 		Q0 = tempPoints[0];
 	}
 
-	// Pridanie poslednej usecky, ak je to potrebne
 	if (deltaT * floor(1 / deltaT) < 1) {
 		lines.emplace_back(Q0, curvePoints.last(), curve.getZBufferPosition(), curve.getIsFilled(), borderColor, fillingColor);
 	}
@@ -1078,15 +1023,12 @@ void ViewerWidget::turnCurve(int angle) {
 			QVector<QPoint> rotatedPoints;
 
 			for (const QPoint& point : points) {
-				// Translate the point to the origin
 				int translatedX = point.x() - center.x();
 				int translatedY = point.y() - center.y();
 
-				// Rotate the point
 				int rotatedX = static_cast<int>(translatedX * cosAngle - translatedY * sinAngle);
 				int rotatedY = static_cast<int>(translatedX * sinAngle + translatedY * cosAngle);
 
-				// Translate the point back
 				rotatedX += center.x();
 				rotatedY += center.y();
 
@@ -1136,7 +1078,6 @@ void ViewerWidget::drawRectangle(MyRectangle& rectangle) {
 
 	QVector<QPoint> rectanglePoints = rectangle.getPoints();
 
-	// Kontrola, ci su vsetky body mimo oblasti vykreslovania
 	bool allPointsOutside = std::all_of(pointsVector.begin(), pointsVector.end(), [this](const QPoint& point) {
 		return !isInside(point);
 		});
@@ -1146,10 +1087,9 @@ void ViewerWidget::drawRectangle(MyRectangle& rectangle) {
 		return;
 	}
 
-	// Kontrola kazdeho bodu, ci je v oblasti vykreslovania, a orezanie ak je to potrebne
 	for (const QPoint& point : rectanglePoints) {
 		if (!isInside(point)) {
-			rectanglePoints = trimPolygon(rectangle); // Orezanie obdlznika, ak su niektore body mimo hranic
+			rectanglePoints = trimPolygon(rectangle);
 			break;
 		}
 	}
@@ -1161,7 +1101,6 @@ void ViewerWidget::drawRectangle(MyRectangle& rectangle) {
 
 	std::vector<Line> lines;
 	if (!rectanglePoints.isEmpty()) {
-		// Pridanie useciek pre kazdu stranu obdlznika
 		lines.emplace_back(rectanglePoints.at(0), rectanglePoints.at(1), rectangle.getZBufferPosition(), rectangle.getIsFilled(), borderColor, fillingColor);
 		lines.emplace_back(rectanglePoints.at(1), rectanglePoints.at(2), rectangle.getZBufferPosition(), rectangle.getIsFilled(), borderColor, fillingColor);
 		lines.emplace_back(rectanglePoints.at(2), rectanglePoints.at(3), rectangle.getZBufferPosition(), rectangle.getIsFilled(), borderColor, fillingColor);
