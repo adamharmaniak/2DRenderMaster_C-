@@ -24,7 +24,7 @@
 
 ## Layer Selection:
 - After selecting a *layer*, the user can:
-  - **Move**, **scale**, and **rotate** the shape.
+  - **Move**, **scale**, and **rotate**(defining an angle is necessary) the shape.
   - Define a different *depth value* for the **Z-buffer** (move the shape *above/below* others).
 
 ## Saving and Loading:
