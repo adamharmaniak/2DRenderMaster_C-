@@ -3,7 +3,6 @@
 
 ## How to get the application up and running
 1. Download the files from the repository.
-2. Move all files except "CMakeLists" to the "src" folder.
-3. Create a new "build" using CMake (but you need to specify the correct path and version of your Qt in the "CMakeLists" file first).
-4. In Visual Studio Community you need to "set "ImageViewer" as Startup project".
-5. Now you can run the application.
+2. Create a new "build" using CMake (but you need to specify the correct path and version of your Qt in the "CMakeLists" file first).
+3. In Visual Studio Community you need to "set "ImageViewer" as Startup project".
+4. Now you can run the application.
