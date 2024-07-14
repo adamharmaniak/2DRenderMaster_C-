@@ -1236,15 +1236,12 @@ void ViewerWidget::turnRectangle(int angle) {
 			QVector<QPoint> rotatedPoints;
 
 			for (const QPoint& point : points) {
-				// Translate the point to the origin
 				int translatedX = point.x() - center.x();
 				int translatedY = point.y() - center.y();
 
-				// Rotate the point
 				int rotatedX = static_cast<int>(translatedX * cosAngle - translatedY * sinAngle);
 				int rotatedY = static_cast<int>(translatedX * sinAngle + translatedY * cosAngle);
 
-				// Translate the point back
 				rotatedX += center.x();
 				rotatedY += center.y();
 
