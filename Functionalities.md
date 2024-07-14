@@ -28,7 +28,7 @@
   - Define a different *depth value* for the **Z-buffer** (move the shape *above/below* others).
 
 ## Saving and Loading:
-- The current state of the program (shapes in layers, their colors, depth values, and canvas size) can be saved in a chosen format.
+- The current state of the program (shapes in layers, their colors, depth values, and canvas size) can be saved in the .csv format.
 - The saved file can be loaded to continue working with the program.
 
 ## Rasterization Algorithms Used:
